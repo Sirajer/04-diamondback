@@ -55,13 +55,16 @@ annTail = snd
 --------------------------------------------------------------------------------
 compile :: APgm -> [Instruction]
 --------------------------------------------------------------------------------
-compile (Prog ds e) = error "TBD:compile"
+compile (Prog ds e) = compileBody emptyEnv e ++ concatMap compileDec1 ds
 
 compileDecl :: ADcl -> [Instruction]
-compileDecl (Decl f xs e l) = error "TBD:compileDecl"
+compileDecl (Decl f xs e l) = ILabel (DefFun (bindId f)) : compileBody (paramsEnv xs) env e
 
 compileBody :: Env -> AExp -> [Instruction]
 compileBody env e = funInstrs (countVars e) (compileEnv env e)
+
+paramsEnv :: [Bind a] -> Env
+paramsEnv xs = fromListEnv (zip (bindId <$> xs) [-2, -3..])
 
 -- | @funInstrs n body@ returns the instructions of `body` wrapped
 --   with code that sets up the stack (by allocating space for n local vars)
@@ -76,11 +79,11 @@ funInstrs n instrs
 
 -- FILL: insert instructions for setting up stack for `n` local vars
 funEntry :: Int -> [Instruction]
-funEntry n = error "TBD:funEntry"
+funEntry n = [ IPush (Reg EBP), IMov (Reg EBP) (Reg ESP), ISub (Reg ESP) (Const 4 * n)]
 
 -- FILL: clean up stack & labels for jumping to error
 funExit :: [Instruction]
-funExit = error "TBD:funExit"
+funExit = [ IMov (Reg ESP) (Reg EBP), IPop (Reg EBP)]
 
 --------------------------------------------------------------------------------
 -- | @countVars e@ returns the maximum stack-size needed to evaluate e,
@@ -95,7 +98,22 @@ countVars _              = 0
 --------------------------------------------------------------------------------
 compileEnv :: Env -> AExp -> [Instruction]
 --------------------------------------------------------------------------------
-compileEnv env e = error "TBD:compileEnv"
+compileEnv env v@Number {}       = [ compileImm env v  ]
+
+compileEnv env v@Boolean {}      = [ compileImm env v  ]
+
+compileEnv env v@Id {}           = [ compileImm env v  ]
+
+compileEnv env e@Let {}          = is ++ compileEnv env' body
+  where
+    (env', is)                   = compileBinds env [] binds
+    (binds, body)                = exprBinds e
+
+compileEnv env (Prim1 o v l)     = compilePrim1 l env o v
+
+compileEnv env (Prim2 o v1 v2 l) = compilePrim2 l env o v1 v2
+
+compileEnv env (If v e1 e2 l)    = compileIf l env v e1 e2
 
 compileImm :: Env -> IExp -> Instruction
 compileImm env v = IMov (Reg EAX) (immArg env v)
@@ -123,6 +141,81 @@ immArg _   e             = panic msg (sourceSpan e)
   where
     msg                  = "Unexpected non-immExpr in immArg: " <> show (void e)
 
+-- START OF MY FAULTY CODE FROM LAST PAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA--
+assertType :: Env -> IExp -> Ty -> [Instruction]
+assertType env v ty 
+	= [ IMov (Reg EAX) (immArg env v)
+	  , IMov (Reg EBX) (Reg EAX)
+	  , IAnd (Reg EBX) (HexConst 0x00000001)
+	  , ICmp (Reg EBX) (typeTag ty)
+	  , IJne (DynamicErr (TypeError ty)) --ij dyn error (takes dyn error arithmetic over or type error)
+	  ]
+
+-- | TBD: Implement code for `Prim1` with appropriate type checking
+compilePrim1 :: Tag -> Env -> Prim1 -> IExp -> [Instruction]
+compilePrim1 l env Add1 v = assertType env v TNumber
+	                        ++ [ IMov (Reg EAX) (immArg env v), IAdd (Reg EAX) (Const 2) 
+	                        , IJo (DynamicErr ArithOverflow)]
+compilePrim1 l env Sub1 v = assertType env v TNumber
+	     					++ [ IMov (Reg EAX) (immArg env v), IAdd (Reg EAX) (Const (-2)) 
+	     					, IJo (DynamicErr ArithOverflow)]
+compilePrim1 l env Print v = compileEnv env v ++ [ IPush (Reg EAX), ICall (Builtin "print"), IPop (Reg EAX) ]
+compilePrim1 l env IsNum v =  let (_, i) = l in
+							 [ IMov (Reg EAX) (immArg env v), IAnd (Reg EAX) (Const 1), ICmp (Reg EAX) (Const 0), IJne (BranchTrue i)
+							 , IMov (Reg EAX) (Const (-1)), IJmp (BranchDone i), ILabel (BranchTrue i)
+							 , IMov (Reg EAX) (Const 0x7fffffff), ILabel (BranchDone i)
+							 ] --FIND OUT WHAT FALSE IS
+compilePrim1 l env IsBool v = let (_, i) = l in
+							  [ IMov (Reg EAX) (immArg env v), IAnd (Reg EAX) (Const 1), ICmp (Reg EAX) (Const 0), IJne (BranchTrue i)
+							  , IMov (Reg EAX) (Const 0x7fffffff), IJmp (BranchDone i), ILabel (BranchTrue i)
+							  , IMov (Reg EAX) (Const (-1)), ILabel (BranchDone i)
+							  ] --FIND OUT WHAT FALSE IS
+    								--add1 sub1 print isnum isbool Separate case for each?
+-- | TBD: Implement code for `Prim2` with appropriate type checking
+
+
+compilePrim2 :: Tag -> Env -> Prim2 -> IExp -> IExp -> [Instruction]
+compilePrim2 l env Plus v1 v2 = assertType env v1 TNumber
+								++ assertType env v2 TNumber
+								++ [ IMov (Reg EAX) (immArg env v1)
+								, IAdd (Reg EAX) (immArg env v2) 
+								, IJo (DynamicErr ArithOverflow)] 
+compilePrim2 l env Minus v1 v2 = assertType env v1 TNumber
+								++ assertType env v2 TNumber
+								++ [ IMov (Reg EAX) (immArg env v1)
+								, ISub (Reg EAX) (immArg env v2) 
+							    , IJo (DynamicErr ArithOverflow)] 
+compilePrim2 l env Times v1 v2 = assertType env v1 TNumber
+								++ assertType env v2 TNumber
+								++ [ IMov (Reg EAX) (immArg env v1)
+								, IMul (Reg EAX) (immArg env v2)
+								, IJo (DynamicErr ArithOverflow), IShr (Reg EAX) (Const 1)] 
+compilePrim2 l env Less v1 v2 = assertType env v1 TNumber
+								++ assertType env v2 TNumber
+								++ [ IMov (Reg EAX) (immArg env v1), ISub (Reg EAX) (immArg env v2)
+								, IAnd (Reg EAX) (Const 0x80000000), IOr (Reg EAX) (Const 0x7fffffff) 
+								]
+compilePrim2 l env Greater v1 v2 = assertType env v1 TNumber
+								   ++ assertType env v2 TNumber
+								   ++ [ IMov (Reg EAX) (immArg env v2), ISub (Reg EAX) (immArg env v1)
+								   , IAnd (Reg EAX) (Const 0x80000000), IOr (Reg EAX) (Const 0x7fffffff) 
+								   ]
+compilePrim2 l env Equal v1 v2 = let (_, i) = l in
+								 assertType env v1 TNumber
+								 ++ assertType env v2 TNumber
+								 ++ [ ICmp (immArg env v1) (immArg env v2), IJe (BranchTrue i) 
+								 , IMov (Reg EAX) (Const 0x7fffffff), IJmp (BranchDone i), ILabel (BranchTrue i)
+								 , IMov (Reg EAX) (Const (-1)), ILabel (BranchDone i)
+								 ]
+
+-- | TBD: Implement code for `If` with appropriate type checking
+compileIf :: Tag -> Env -> IExp -> AExp -> AExp -> [Instruction]
+compileIf l env v e1 e2 = let (_, i) = l in
+						  (assertType env v TBoolean ++ [ IMov (Reg EAX) (immArg env v), ICmp (Reg EAX) (Const 0), IJne (BranchTrue i)] 
+						  ++ compileEnv env e2 ++ [IJmp (BranchDone i), ILabel (BranchTrue i)] 
+						  ++ compileEnv env e1 ++ [ILabel (BranchDone i)])
+
+--END OF MY FAULTY CODE FROM LAST PAAAAAAAAAAAAAA
 stackVar :: Int -> Arg
 stackVar i = RegOffset (-4 * i) EBP
 

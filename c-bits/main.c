@@ -21,11 +21,20 @@ int print(int val) {
   return val;
 }
 
-/*
 
-Copy over any error-detection functions here
-
-*/
+void error(int code, int v)
+{
+  if(code == 0) {
+    fprintf(stderr, "Error: expected a number but got %#010x\n", v);
+  }
+  else if (code == 1) {
+    fprintf(stderr, "Error: expected a boolean but got %#010x\n", v);
+  }
+  else if (code == 2){
+    fprintf(stderr, "Error: arithmetic overflow.");
+  }
+  exit(1);
+}
 
 
 // main should remain unchanged

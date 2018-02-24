@@ -34,7 +34,10 @@ postlude = concat
   ]
 
 dynError   :: DynError -> [Instruction]
-dynError e = error "TBD:dynError"
+dynError e 
+   | e == (TypeError TNumber) = [ ILabel (DynamicErr (TypeError TNumber)), IPush (Reg EAX), IPush ( Const 0), ICall (Builtin "error")]
+   | e == (TypeError TBoolean) = [ ILabel (DynamicErr (TypeError TBoolean)), IPush (Reg EAX), IPush ( Const 1), ICall (Builtin "error")]
+   | e == ArithOverflow = [ ILabel (DynamicErr ArithOverflow), IPush (Reg EAX), IPush ( Const 2), ICall (Builtin "error")]
 
 --------------------------------------------------------------------------------
 instrAsm :: Instruction -> Text
