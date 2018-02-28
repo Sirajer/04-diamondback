@@ -50,19 +50,19 @@ wellFormedD fEnv (Decl _ xs e _) = wellFormedExpr fEnv (S.fromList xs) e  --chec
 -- | `wellFormedE vEnv e` returns the list of errors for an expression `e`
 --------------------------------------------------------------------------------
 wellFormedE :: FunEnv -> Env -> Bare -> [UserError]
-wellFormedE fEnv env e = visit S.empty e
+wellFormedE fEnv env e = visit env e
   where
-    visit :: S.Set Id -> Expr a -> [UserError]
-    visit seen (Number n _)      = []
+    visit :: Env -> Expr a -> [UserError]
+    visit seen (Number n _)      = [] -- check that number isn't too big or small
     visit seen (Boolean b _)     = []
     visit seen (Prim1 o e _)     = visit seen e
     visit seen (If e1 e2 e3 _)   = concatMap (visit seen) [e1, e2, e3]
     visit seen (Prim2 o e1 e2 _) = concatMap (visit seen) [e1, e2]
-    visit seen (Let x e1 e2 _)   = visit seen e1 ++ visit (S.insert x seen) e2 --add if Let x = 20 in let x = 5 error (if x in seen already, throw error)
+    visit seen (Let x e1 e2 _)   = visit seen e1 ++ visit (addEnv x seen) e2 --add if Let x = 20 in let x = 5 error (if x in seen already, throw error)
     visit seen (Id x _) 
-      | S.member x seen          = []
+      | memberEnv x seen          = []
       | otherwise                = [error "unbound variable e" ++ x]
-    visit seen (App f es _)      = case M.lookup f funEnv of 
+    visit seen (App f es _)      = case lookupEnv f funEnv of 
                                       Nothing -> [error "undefined function" ++ f ]
                                       Just n  -> (if length es == n then [] else error "wrong args")
                                         ++ concatMap (visit seen) es 
