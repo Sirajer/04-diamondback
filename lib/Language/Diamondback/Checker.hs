@@ -53,7 +53,8 @@ wellFormedE :: FunEnv -> Env -> Bare -> [UserError]
 wellFormedE fEnv env e = visit env e
   where
     visit :: Env -> Expr a -> [UserError]
-    visit seen (Number n l)      | n > maxInt = [ errLargeNum l n ]
+    visit seen (Number n l)      | n > (maxInt -1 ) = [ errLargeNum l n ]
+                                 | n < (-maxInt ) = [ errLargeNum l n ]
                                  | otherwise = [] -- check that number isn't too big or small
     visit seen (Boolean b l)     = []
     visit seen (Prim1 o e l)     = visit seen e
@@ -67,7 +68,7 @@ wellFormedE fEnv env e = visit env e
                                       Nothing -> [errUnboundFun l (Id f l)]
                                       Just n  -> (if length es == n then [] else errCallArity l (Id es l))
                                         ++ concatMap (visit seen) es 
-
+--tail call compile it, mov to where it has to be
 --------------------------------------------------------------------------------
 -- | Error Checkers: In each case, return an empty list if no errors.
 --------------------------------------------------------------------------------
@@ -76,6 +77,7 @@ duplicateFunErrors
   = fmap errDupFun
   . concat
   . dupBy (bindId . fName)
+
 
 -- | `maxInt` is the largest number you can represent with 31 bits (accounting for sign
 --    and the tag bit.
