@@ -53,7 +53,7 @@ anf i (If c e1 e2 l)    = (i''', stitch bs  (If c' e1' e2' l))
     (i'' ,     e1')     = anf i'  e1
     (i''',     e2')     = anf i'' e2
 
-anf i (App f es l)      = (i', stitch bs (App e es' l))
+anf i (App f es l)      = (i', stitch bs (App (Id e l) es' l))
   where
     (i', bs, e:es') = imms i (f:es)
 

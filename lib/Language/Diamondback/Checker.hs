@@ -53,18 +53,19 @@ wellFormedE :: FunEnv -> Env -> Bare -> [UserError]
 wellFormedE fEnv env e = visit env e
   where
     visit :: Env -> Expr a -> [UserError]
-    visit seen (Number n _)      = [] -- check that number isn't too big or small
-    visit seen (Boolean b _)     = []
-    visit seen (Prim1 o e _)     = visit seen e
-    visit seen (If e1 e2 e3 _)   = concatMap (visit seen) [e1, e2, e3]
-    visit seen (Prim2 o e1 e2 _) = concatMap (visit seen) [e1, e2]
-    visit seen (Let x e1 e2 _)   = visit seen e1 ++ visit (addEnv x seen) e2 --add if Let x = 20 in let x = 5 error (if x in seen already, throw error)
-    visit seen (Id x _) 
+    visit seen (Number n l)      | n > maxInt = [ errLargeNum l n ]
+                                 | otherwise = [] -- check that number isn't too big or small
+    visit seen (Boolean b l)     = []
+    visit seen (Prim1 o e l)     = visit seen e
+    visit seen (If e1 e2 e3 l)   = concatMap (visit seen) [e1, e2, e3]
+    visit seen (Prim2 o e1 e2 l) = concatMap (visit seen) [e1, e2]
+    visit seen (Let x e1 e2 l)   = visit seen e1 ++ visit (addEnv x seen) e2 --add if Let x = 20 in let x = 5 error (if x in seen already, throw error)
+    visit seen (Id x l) 
       | memberEnv x seen          = []
-      | otherwise                = [error "unbound variable e" ++ x]
-    visit seen (App f es _)      = case lookupEnv f funEnv of 
-                                      Nothing -> [error "undefined function" ++ f ]
-                                      Just n  -> (if length es == n then [] else error "wrong args")
+      | otherwise                = [errUnboundVar l (Id x l)]
+    visit seen (App f es l)      = case lookupEnv f funEnv of 
+                                      Nothing -> [errUnboundFun l (Id f l)]
+                                      Just n  -> (if length es == n then [] else errCallArity l (Id es l))
                                         ++ concatMap (visit seen) es 
 
 --------------------------------------------------------------------------------
