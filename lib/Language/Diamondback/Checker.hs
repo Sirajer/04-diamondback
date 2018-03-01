@@ -44,7 +44,7 @@ wellFormed (Prog ds e) = duplicateFunErrors ds
 -- | `wellFormedD fEnv vEnv d` returns the list of errors for a func-decl `d`
 --------------------------------------------------------------------------------
 wellFormedD :: FunEnv -> BareDecl -> [UserError]
-wellFormedD fEnv (Decl _ xs e _) = wellFormedExpr fEnv (S.fromList xs) e  --check that same var doesn't appear twice in same parameters
+wellFormedD fEnv (Decl _ xs e _) = wellFormedE fEnv (fromListEnv xs) e  --check that same var doesn't appear twice in same parameters
 
 --------------------------------------------------------------------------------
 -- | `wellFormedE vEnv e` returns the list of errors for an expression `e`
