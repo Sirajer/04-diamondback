@@ -35,7 +35,6 @@ type FunEnv = Env
 wellFormed :: BareProgram -> [UserError]
 --------------------------------------------------------------------------------
 wellFormed (Prog ds e) = duplicateFunErrors ds
-                      ++ duplicateParamErrors ds
                       ++ concatMap (wellFormedD fEnv) ds
                       ++ wellFormedE fEnv emptyEnv e
   where
@@ -45,9 +44,10 @@ wellFormed (Prog ds e) = duplicateFunErrors ds
 -- | `wellFormedD fEnv vEnv d` returns the list of errors for a func-decl `d`
 --------------------------------------------------------------------------------
 wellFormedD :: FunEnv -> BareDecl -> [UserError]
-wellFormedD fEnv (Decl _ xs e _) = wellFormedE fEnv vEnv e  --check that same var doesn't appear twice in same parameters
+wellFormedD fEnv (Decl _ xs e _) = duplicateParamErrors xs 
+                                   ++ wellFormedE fEnv vEnv e 
   where
-    vEnv                         = foldl addEnv xs emptyEnv
+    vEnv                         = foldl (flip addEnv) emptyEnv xs
 
 --------------------------------------------------------------------------------
 -- | `wellFormedE vEnv e` returns the list of errors for an expression `e`
