@@ -55,7 +55,7 @@ wellFormedD fEnv (Decl _ xs e _) = duplicateParamErrors xs
 wellFormedE :: FunEnv -> Env -> Bare -> [UserError]
 wellFormedE fEnv env e = visit env e
   where
-    visit :: Env -> Expr a -> [UserError]
+    visit :: Env -> Bare -> [UserError]
     visit seen (Number n l)      | n > (maxInt -1 ) = [ errLargeNum l n ]
                                  | n < (-maxInt ) = [ errLargeNum l n ]
                                  | otherwise = [] -- check that number isn't too big or small
@@ -84,9 +84,8 @@ duplicateFunErrors
 
 duplicateParamErrors :: [BareBind] -> [UserError]
 duplicateParamErrors i 
-  = fmap errDupParam
-  .concat
-  .dupBy (bindId . i)
+  = fmap (errDupParam . head)
+  .dupBy bindId i
 
 -- | `maxInt` is the largest number you can represent with 31 bits (accounting for sign
 --    and the tag bit.
