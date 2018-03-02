@@ -82,7 +82,7 @@ duplicateFunErrors
   . concat
   . dupBy (bindId . fName)
 
-duplicateParamErrors :: [BareDecl] -> [UserError]
+duplicateParamErrors :: [BareBind] -> [UserError]
 duplicateParamErrors i 
   = fmap errDupParam
   .concat
