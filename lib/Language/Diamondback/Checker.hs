@@ -35,6 +35,7 @@ type FunEnv = Env
 wellFormed :: BareProgram -> [UserError]
 --------------------------------------------------------------------------------
 wellFormed (Prog ds e) = duplicateFunErrors ds
+                      ++ duplicateParamErrors ds
                       ++ concatMap (wellFormedD fEnv) ds
                       ++ wellFormedE fEnv emptyEnv e
   where
@@ -60,13 +61,14 @@ wellFormedE fEnv env e = visit env e
     visit seen (Prim1 o e l)     = visit seen e
     visit seen (If e1 e2 e3 l)   = concatMap (visit seen) [e1, e2, e3]
     visit seen (Prim2 o e1 e2 l) = concatMap (visit seen) [e1, e2]
-    visit seen (Let x e1 e2 l)   = visit seen e1 ++ visit (addEnv x seen) e2 --add if Let x = 20 in let x = 5 error (if x in seen already, throw error)
+    visit seen (Let x e1 e2 l)   = (if (memberEnv (bindId x) seen) then [errDupBind x] else [])
+                                   ++ visit seen e1 ++ visit (addEnv x seen) e2 
     visit seen (Id x l) 
       | memberEnv x seen          = []
-      | otherwise                = [errUnboundVar l (Id x l)]
-    visit seen (App f es l)      = case lookupEnv f funEnv of 
-                                      Nothing -> [errUnboundFun l (Id f l)]
-                                      Just n  -> (if length es == n then [] else errCallArity l (Id es l))
+      | otherwise                = [errUnboundVar l x]
+    visit seen (App f es l)      = case lookupEnv f fEnv of 
+                                      Nothing -> [errUnboundFun l f]
+                                      Just n  -> (if length es == n then [] else [errCallArity l f])
                                         ++ concatMap (visit seen) es 
 --tail call compile it, mov to where it has to be
 --------------------------------------------------------------------------------
@@ -78,6 +80,11 @@ duplicateFunErrors
   . concat
   . dupBy (bindId . fName)
 
+duplicateParamErrors :: [BareDecl] -> [UserError]
+duplicateParamErrors i 
+  = fmap errDupParam
+  .concat
+  .dupBy (bindId . i)
 
 -- | `maxInt` is the largest number you can represent with 31 bits (accounting for sign
 --    and the tag bit.
