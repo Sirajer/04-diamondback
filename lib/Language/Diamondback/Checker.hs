@@ -47,7 +47,7 @@ wellFormed (Prog ds e) = duplicateFunErrors ds
 wellFormedD :: FunEnv -> BareDecl -> [UserError]
 wellFormedD fEnv (Decl _ xs e _) = wellFormedE fEnv vEnv e  --check that same var doesn't appear twice in same parameters
   where
-    vEnv                         = addsEnv xs emptyEnv
+    vEnv                         = foldl addEnv xs emptyEnv
 
 --------------------------------------------------------------------------------
 -- | `wellFormedE vEnv e` returns the list of errors for an expression `e`
