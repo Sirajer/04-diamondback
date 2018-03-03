@@ -116,7 +116,10 @@ compileEnv env (Prim2 o v1 v2 l) = compilePrim2 l env o v1 v2
 compileEnv env (If v e1 e2 l)    = compileIf l env v e1 e2
 
 compileEnv env (App f vs l) | annTail l = tailcall (DefFun f) (param env <$> vs)
-							| otherwise = call (DefFun f) (param env <$> vs)
+							| otherwise = let args = (param env <$> vs) in 
+										  [ISub (Reg ESP) (Const (4 * length args))]
+										  ++ [IPush a | a <- reverse args ]
+										  ++ [ICall f, IAdd (Reg ESP) (Const 4 * length args)]
 
 tailcall :: Label -> [Arg] -> [Instruction]
 tailcall f args
@@ -125,7 +128,7 @@ tailcall f args
 	++ [IJmp f]
 
 moveArgs :: [Arg] -> [Instruction]
-moveArgs arg = concat . zipWith move [-2, -3..]
+moveArgs = concat . zipWith move [-2, -3..]
 	where
 		move i a = [IMov (Reg EAX) a, IMov (stackVar i) (Reg EAX)]
 
