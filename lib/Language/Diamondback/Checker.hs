@@ -85,7 +85,8 @@ duplicateFunErrors
 duplicateParamErrors :: [BareBind] -> [UserError]
 duplicateParamErrors i 
   = fmap (errDupParam . head)
-  .dupBy bindId i
+  .dupBy bindId 
+  $ i
 
 -- | `maxInt` is the largest number you can represent with 31 bits (accounting for sign
 --    and the tag bit.
