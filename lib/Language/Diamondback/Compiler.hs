@@ -115,6 +115,20 @@ compileEnv env (Prim2 o v1 v2 l) = compilePrim2 l env o v1 v2
 
 compileEnv env (If v e1 e2 l)    = compileIf l env v e1 e2
 
+compileEnv env (App f vs l) | annTail l = tailcall (DefFun f) (param env <$> vs)
+							| otherwise = call (DefFun f) (param env <$> vs)
+
+tailcall :: Label -> [Arg] -> [Instruction]
+tailcall f args
+	= moveArgs args
+	++ funExit
+	++ [IJmp f]
+
+moveArgs :: [Arg] -> [Instruction]
+moveArgs arg = concat . zipWith move [-2, -3..]
+	where
+		move i a = [IMov (Reg EAX) a, IMov (stackVar i) (Reg EAX)]
+
 compileImm :: Env -> IExp -> Instruction
 compileImm env v = IMov (Reg EAX) (immArg env v)
 
@@ -203,8 +217,7 @@ compilePrim2 l env Greater v1 v2 = assertType env v1 TNumber
 compilePrim2 l env Equal v1 v2 = let ((_, i), _) = l in
 								 assertType env v1 TNumber
 								 ++ assertType env v2 TNumber
-								 ++ [ IMov (Reg EAX) (immArg env v1), IMov (Reg EBX) (immArg env v2)
-								 , ICmp (Reg EAX) (Reg EBX), IJe (BranchTrue i) 
+								 ++ [ IMov (Reg EAX) (immArg env v1), ICmp (Reg EAX) (immArg env v2), IJe (BranchTrue i) 
 								 , IMov (Reg EAX) (Const 0x7fffffff), IJmp (BranchDone i), ILabel (BranchTrue i)
 								 , IMov (Reg EAX) (Const (0xffffffff)), ILabel (BranchDone i)
 								 ]
