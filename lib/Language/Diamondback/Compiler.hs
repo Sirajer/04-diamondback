@@ -160,10 +160,10 @@ compilePrim1 l env Sub1 v = assertType env v TNumber
 	     					++ [ IMov (Reg EAX) (immArg env v), IAdd (Reg EAX) (Const (-2)) 
 	     					, IJo (DynamicErr ArithOverflow)]
 compilePrim1 l env Print v = compileEnv env v ++ [ IPush (Reg EAX), ICall (Builtin "print"), IPop (Reg EAX) ]
-compilePrim1 l env IsNum v =  
-							 [ IMov (Reg EAX) (immArg env v), IAnd (Reg EAX) (Const 1), ICmp (Reg EAX) (Const 0), IJne (BranchTrue l)
-							 , IMov (Reg EAX) (Const (-1)), IJmp (BranchDone l), ILabel (BranchTrue l)
-							 , IMov (Reg EAX) (Const 0x7fffffff), ILabel (BranchDone l)
+compilePrim1 l env IsNum v =  let ((_, i), _) = l in
+							 [ IMov (Reg EAX) (immArg env v), IAnd (Reg EAX) (Const 1), ICmp (Reg EAX) (Const 0), IJne (BranchTrue i)
+							 , IMov (Reg EAX) (Const (-1)), IJmp (BranchDone i), ILabel (BranchTrue i)
+							 , IMov (Reg EAX) (Const 0x7fffffff), ILabel (BranchDone i)
 							 ] --FIND OUT WHAT FALSE IS
 compilePrim1 l env IsBool v = let (_, i) = l in
 							  [ IMov (Reg EAX) (immArg env v), IAnd (Reg EAX) (Const 1), ICmp (Reg EAX) (Const 0), IJne (BranchTrue i)
