@@ -203,9 +203,10 @@ compilePrim2 l env Greater v1 v2 = assertType env v1 TNumber
 compilePrim2 l env Equal v1 v2 = let ((_, i), _) = l in
 								 assertType env v1 TNumber
 								 ++ assertType env v2 TNumber
-								 ++ [ IMov (Reg EAX) (immArg env v1), ICmp (Reg EAX) (immArg env v2), IJe (BranchTrue i) 
+								 ++ [ IMov (Reg EAX) (immArg env v1), IMov (Reg EBX) (immArg env v2)
+								 , ICmp (Reg EAX) (Reg EBX), IJe (BranchTrue i) 
 								 , IMov (Reg EAX) (Const 0x7fffffff), IJmp (BranchDone i), ILabel (BranchTrue i)
-								 , IMov (Reg EAX) (Const (-1)), ILabel (BranchDone i)
+								 , IMov (Reg EAX) (Const (0xffffffff)), ILabel (BranchDone i)
 								 ]
 
 -- | TBD: Implement code for `If` with appropriate type checking
