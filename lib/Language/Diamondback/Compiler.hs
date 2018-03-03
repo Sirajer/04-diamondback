@@ -152,7 +152,7 @@ assertType env v ty
 	  ]
 
 -- | TBD: Implement code for `Prim1` with appropriate type checking
-compilePrim1 :: Tag -> Env -> Prim1 -> IExp -> [Instruction]
+compilePrim1 :: Ann -> Env -> Prim1 -> IExp -> [Instruction]
 compilePrim1 l env Add1 v = assertType env v TNumber
 	                        ++ [ IMov (Reg EAX) (immArg env v), IAdd (Reg EAX) (Const 2) 
 	                        , IJo (DynamicErr ArithOverflow)]
@@ -174,7 +174,7 @@ compilePrim1 l env IsBool v = let (_, i) = l in
 -- | TBD: Implement code for `Prim2` with appropriate type checking
 
 
-compilePrim2 :: Tag -> Env -> Prim2 -> IExp -> IExp -> [Instruction]
+compilePrim2 :: Ann -> Env -> Prim2 -> IExp -> IExp -> [Instruction]
 compilePrim2 l env Plus v1 v2 = assertType env v1 TNumber
 								++ assertType env v2 TNumber
 								++ [ IMov (Reg EAX) (immArg env v1)
@@ -209,7 +209,7 @@ compilePrim2 l env Equal v1 v2 = let (_, i) = l in
 								 ]
 
 -- | TBD: Implement code for `If` with appropriate type checking
-compileIf :: Tag -> Env -> IExp -> AExp -> AExp -> [Instruction]
+compileIf :: Ann -> Env -> IExp -> AExp -> AExp -> [Instruction]
 compileIf l env v e1 e2 = let (_, i) = l in
 						  (assertType env v TBoolean ++ [ IMov (Reg EAX) (immArg env v), ICmp (Reg EAX) (Const 0), IJne (BranchTrue i)] 
 						  ++ compileEnv env e2 ++ [IJmp (BranchDone i), ILabel (BranchTrue i)] 
