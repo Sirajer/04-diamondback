@@ -55,10 +55,10 @@ annTail = snd
 --------------------------------------------------------------------------------
 compile :: APgm -> [Instruction]
 --------------------------------------------------------------------------------
-compile (Prog ds e) = compileBody emptyEnv e ++ concatMap compileDec1 ds
+compile (Prog ds e) = compileBody emptyEnv e ++ concatMap compileDecl ds
 
 compileDecl :: ADcl -> [Instruction]
-compileDecl (Decl f xs e l) = ILabel (DefFun (bindId f)) : compileBody (paramsEnv xs) env e
+compileDecl (Decl f xs e l) = ILabel (DefFun (bindId f)) : compileBody (paramsEnv xs) e
 
 compileBody :: Env -> AExp -> [Instruction]
 compileBody env e = funInstrs (countVars e) (compileEnv env e)
@@ -79,7 +79,7 @@ funInstrs n instrs
 
 -- FILL: insert instructions for setting up stack for `n` local vars
 funEntry :: Int -> [Instruction]
-funEntry n = [ IPush (Reg EBP), IMov (Reg EBP) (Reg ESP), ISub (Reg ESP) (Const 4 * n)]
+funEntry n = [ IPush (Reg EBP), IMov (Reg EBP) (Reg ESP), ISub (Reg ESP) (Const (4 * n))]
 
 -- FILL: clean up stack & labels for jumping to error
 funExit :: [Instruction]
@@ -160,10 +160,10 @@ compilePrim1 l env Sub1 v = assertType env v TNumber
 	     					++ [ IMov (Reg EAX) (immArg env v), IAdd (Reg EAX) (Const (-2)) 
 	     					, IJo (DynamicErr ArithOverflow)]
 compilePrim1 l env Print v = compileEnv env v ++ [ IPush (Reg EAX), ICall (Builtin "print"), IPop (Reg EAX) ]
-compilePrim1 l env IsNum v =  let (_, i) = l in
-							 [ IMov (Reg EAX) (immArg env v), IAnd (Reg EAX) (Const 1), ICmp (Reg EAX) (Const 0), IJne (BranchTrue i)
-							 , IMov (Reg EAX) (Const (-1)), IJmp (BranchDone i), ILabel (BranchTrue i)
-							 , IMov (Reg EAX) (Const 0x7fffffff), ILabel (BranchDone i)
+compilePrim1 l env IsNum v =  
+							 [ IMov (Reg EAX) (immArg env v), IAnd (Reg EAX) (Const 1), ICmp (Reg EAX) (Const 0), IJne (BranchTrue l)
+							 , IMov (Reg EAX) (Const (-1)), IJmp (BranchDone l), ILabel (BranchTrue l)
+							 , IMov (Reg EAX) (Const 0x7fffffff), ILabel (BranchDone l)
 							 ] --FIND OUT WHAT FALSE IS
 compilePrim1 l env IsBool v = let (_, i) = l in
 							  [ IMov (Reg EAX) (immArg env v), IAnd (Reg EAX) (Const 1), ICmp (Reg EAX) (Const 0), IJne (BranchTrue i)
