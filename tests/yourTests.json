@@ -1,19 +1,19 @@
 [ {"name"   : "defined"   , 
 	"code" : "def addTwo(x, y): x + y addTwo(13, 7)", 
 	"result" : { "value" : "20" } }
-, {"name"   : "not defined"   , 
-	"code" : "def addTwo(x, y): x + y addTwo(13, 7)", 
+, {"name"   : "not-defined"   , 
+	"code" : "def addTwo(x, y): x + y add2(13, 7)", 
 	"result" : { "failure" : "not defined" } }
-, {"name"   : "defined and not defined"   , 
+, {"name"   : "defined-and-not-defined"   , 
 	"code" : "def addTwo(x, y): x + y addTwo(13, 7) + add2(13, 7)", 
 	"result" : { "failure" : "not defined" } }
 , {"name"   : "dupparam"   , 
 	"code" : "def addTwo(x, x): x + y addTwo(13, 7)", 
 	"result" : { "failure" : "duplicate parameter" } }
-, {"name"   : "not too large"    , "code" : "1 + 1000000", "result" : { "failure" : "too large" } }
-, {"name"   : "too large"    , "code" : "1 + 100000000000000000", "result" : { "failure" : "too large" } }
-, {"name"   : "too small"    , "code" : "1 - 100000000000000000", "result" : { "failure" : "too large" } }
-, {"name"   : "should be fine"    , "code" : "10000 - 10000 + 1000000 - 1000000", "result" : { "value" : "0" } }
-, {"name"   : ":)"   , "code" : "def add2(x, x): x + y add2(12)", "result" : { "failure" : "duplicate parameter" } }
-, {"name"   : ":^)"    , "code" : "def incr(n): n - 1073741825 def incr(n): n + 40737418260 def incr(n): n + 1 incr(5)", "result" : { "failure" : "duplicate function" } }
+, {"name"   : "not-too-large"    , "code" : "1 + 1000000", "result" : { "value" : "1000001" } }
+, {"name"   : "too-large"    , "code" : "1 + 100000000000000000", "result" : { "failure" : "too large" } }
+, {"name"   : "too-small"    , "code" : "1 - 100000000000000000", "result" : { "failure" : "too large" } }
+, {"name"   : "should-be-fine"    , "code" : "10000 - 10000 + 1000000 - 1000000", "result" : { "value" : "0" } }
+, {"name"   : "henlo"   , "code" : "def add2(x, x): x + y add2(12)", "result" : { "failure" : "duplicate parameter" } }
+, {"name"   : "asdfasd"    , "code" : "def incr(n): n - 1073741825 def incr(n): n + 40737418260 def incr(n): n + 1 incr(5)", "result" : { "failure" : "duplicate function" } }
 ]
