@@ -165,7 +165,7 @@ compilePrim1 l env IsNum v =  let ((_, i), _) = l in
 							 , IMov (Reg EAX) (Const (-1)), IJmp (BranchDone i), ILabel (BranchTrue i)
 							 , IMov (Reg EAX) (Const 0x7fffffff), ILabel (BranchDone i)
 							 ] --FIND OUT WHAT FALSE IS
-compilePrim1 l env IsBool v = let (_, i) = l in
+compilePrim1 l env IsBool v = let ((_, i), _) = l in
 							  [ IMov (Reg EAX) (immArg env v), IAnd (Reg EAX) (Const 1), ICmp (Reg EAX) (Const 0), IJne (BranchTrue i)
 							  , IMov (Reg EAX) (Const 0x7fffffff), IJmp (BranchDone i), ILabel (BranchTrue i)
 							  , IMov (Reg EAX) (Const (-1)), ILabel (BranchDone i)
@@ -200,7 +200,7 @@ compilePrim2 l env Greater v1 v2 = assertType env v1 TNumber
 								   ++ [ IMov (Reg EAX) (immArg env v2), ISub (Reg EAX) (immArg env v1)
 								   , IAnd (Reg EAX) (Const 0x80000000), IOr (Reg EAX) (Const 0x7fffffff) 
 								   ]
-compilePrim2 l env Equal v1 v2 = let (_, i) = l in
+compilePrim2 l env Equal v1 v2 = let ((_, i), _) = l in
 								 assertType env v1 TNumber
 								 ++ assertType env v2 TNumber
 								 ++ [ IMov (Reg EAX) (immArg env v1), ICmp (Reg EAX) (immArg env v2), IJe (BranchTrue i) 
@@ -210,7 +210,7 @@ compilePrim2 l env Equal v1 v2 = let (_, i) = l in
 
 -- | TBD: Implement code for `If` with appropriate type checking
 compileIf :: Ann -> Env -> IExp -> AExp -> AExp -> [Instruction]
-compileIf l env v e1 e2 = let (_, i) = l in
+compileIf l env v e1 e2 = let ((_, i), _) = l in
 						  (assertType env v TBoolean ++ [ IMov (Reg EAX) (immArg env v), ICmp (Reg EAX) (Const 0), IJne (BranchTrue i)] 
 						  ++ compileEnv env e2 ++ [IJmp (BranchDone i), ILabel (BranchTrue i)] 
 						  ++ compileEnv env e1 ++ [ILabel (BranchDone i)])
