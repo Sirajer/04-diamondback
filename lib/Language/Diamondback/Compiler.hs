@@ -119,7 +119,7 @@ compileEnv env (App f vs l) | annTail l = tailcall (DefFun f) (param env <$> vs)
 							| otherwise = let args = (param env <$> vs) in 
 										  [ISub (Reg ESP) (Const (4 * (length args)))]
 										  ++ [IPush a | a <- reverse args ]
-										  ++ [ICall (DefFun f), IAdd (Reg ESP) (Const 4 * length args)]
+										  ++ [ICall (DefFun f), IAdd (Reg ESP) (Const (4 * (length args)))]
 
 tailcall :: Label -> [Arg] -> [Instruction]
 tailcall f args
